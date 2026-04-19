@@ -1,0 +1,1594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>DYOGA Sync</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+/* ── RESET & TOKENS ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:       #080b0e;
+  --bg2:      #0d1117;
+  --bg3:      #121820;
+  --card:     #131b24;
+  --card2:    #19232f;
+  --teal:     #00e5b4;
+  --teal2:    #00c49a;
+  --teal3:    #008f70;
+  --teal4:    #004d3c;
+  --amber:    #f5a623;
+  --amber2:   #c47d0e;
+  --blue:     #4fa3ff;
+  --blue2:    #1a6fcc;
+  --red:      #ff4f4f;
+  --red2:     #cc2222;
+  --purple:   #c084fc;
+  --purple2:  #8b40d4;
+  --white:    #eef4f8;
+  --muted:    #7a9ab0;
+  --muted2:   #3d5a6e;
+  --border:   rgba(0,229,180,0.1);
+  --border2:  rgba(0,229,180,0.2);
+  --shadow:   0 8px 32px rgba(0,0,0,0.5);
+  --r:        14px;
+  --r2:       10px;
+  --mono:     'Space Mono', monospace;
+  --sans:     'DM Sans', sans-serif;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--white);font-family:var(--sans);}
+
+/* ── LAYOUT ── */
+.app-shell{display:flex;height:100vh;width:100vw;overflow:hidden;}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  width:72px;flex-shrink:0;background:var(--bg2);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;align-items:center;
+  padding:20px 0;gap:6px;z-index:10;
+  transition:width 0.3s cubic-bezier(0.4,0,0.2,1);
+  overflow:hidden;
+}
+.sidebar.expanded{width:220px;}
+.logo-mark{
+  font-family:var(--mono);font-size:13px;font-weight:700;
+  color:var(--teal);letter-spacing:0.15em;
+  padding:10px 14px;margin-bottom:14px;
+  white-space:nowrap;
+}
+.logo-mark span{color:var(--muted);font-weight:400;}
+.nav-item{
+  width:44px;height:44px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:all 0.2s;position:relative;
+  flex-shrink:0;border:none;background:none;color:var(--muted);
+  text-decoration:none;
+}
+.sidebar.expanded .nav-item{width:192px;justify-content:flex-start;padding:0 14px;gap:12px;}
+.nav-item svg{width:20px;height:20px;flex-shrink:0;}
+.nav-item .nav-label{
+  font-size:13px;font-family:var(--sans);color:var(--muted);
+  display:none;white-space:nowrap;
+}
+.sidebar.expanded .nav-label{display:block;}
+.nav-item:hover{background:rgba(0,229,180,0.07);color:var(--teal);}
+.nav-item:hover .nav-label{color:var(--teal);}
+.nav-item.active{background:rgba(0,229,180,0.12);color:var(--teal);}
+.nav-item.active .nav-label{color:var(--teal);}
+.nav-item .badge{
+  position:absolute;top:6px;right:6px;width:8px;height:8px;
+  border-radius:50%;background:var(--red);
+  border:2px solid var(--bg2);
+}
+.sidebar.expanded .nav-item .badge{right:14px;}
+.sidebar-spacer{flex:1;}
+.conn-status{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 14px;margin:0 0 8px;
+  background:rgba(0,229,180,0.06);border-radius:10px;
+  width:44px;overflow:hidden;transition:width 0.3s;
+}
+.sidebar.expanded .conn-status{width:192px;}
+.conn-dot{width:8px;height:8px;border-radius:50%;background:var(--teal);flex-shrink:0;animation:pulse-glow 2s infinite;}
+@keyframes pulse-glow{0%,100%{box-shadow:0 0 0 0 rgba(0,229,180,0.4);}50%{box-shadow:0 0 0 5px rgba(0,229,180,0);}}
+.conn-text{font-size:10px;color:var(--teal);font-family:var(--mono);white-space:nowrap;}
+
+/* ── MAIN AREA ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative;}
+
+/* ── TOP BAR ── */
+.topbar{
+  height:60px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;border-bottom:1px solid var(--border);
+  background:rgba(8,11,14,0.8);backdrop-filter:blur(20px);
+  z-index:5;
+}
+.topbar-left{display:flex;align-items:center;gap:14px;}
+.menu-btn{background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;border-radius:8px;display:flex;align-items:center;justify-content:center;}
+.menu-btn:hover{color:var(--teal);}
+.page-title{font-family:var(--mono);font-size:14px;color:var(--white);letter-spacing:0.05em;}
+.topbar-right{display:flex;align-items:center;gap:12px;}
+.bat-pill{
+  display:flex;align-items:center;gap:6px;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:20px;padding:4px 10px;font-size:11px;
+  font-family:var(--mono);color:var(--muted);
+}
+.bat-icon{width:22px;height:11px;border:1.5px solid var(--muted2);border-radius:3px;position:relative;}
+.bat-icon::after{content:'';position:absolute;right:-4px;top:50%;transform:translateY(-50%);width:2px;height:5px;background:var(--muted2);border-radius:0 1px 1px 0;}
+.bat-fill{position:absolute;left:1px;top:1px;bottom:1px;background:var(--teal);border-radius:1.5px;transition:width 1s;}
+.time-chip{font-size:11px;font-family:var(--mono);color:var(--muted);}
+.notif-btn{background:none;border:none;cursor:pointer;color:var(--muted);position:relative;padding:4px;border-radius:8px;display:flex;}
+.notif-btn:hover{color:var(--teal);}
+.notif-btn .dot{position:absolute;top:4px;right:4px;width:6px;height:6px;border-radius:50%;background:var(--red);border:1.5px solid var(--bg);}
+
+/* ── PANELS ── */
+.panels{flex:1;overflow:hidden;position:relative;}
+.panel{
+  position:absolute;inset:0;overflow-y:auto;padding:24px;
+  opacity:0;pointer-events:none;transform:translateY(12px);
+  transition:all 0.35s cubic-bezier(0.4,0,0.2,1);
+}
+.panel.active{opacity:1;pointer-events:all;transform:translateY(0);}
+.panel::-webkit-scrollbar{width:4px;}
+.panel::-webkit-scrollbar-track{background:transparent;}
+.panel::-webkit-scrollbar-thumb{background:var(--muted2);border-radius:2px;}
+
+/* ── GRID HELPERS ── */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+
+/* ── CARDS ── */
+.card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r);padding:18px;
+  transition:border-color 0.2s;
+}
+.card:hover{border-color:var(--border2);}
+.card-sm{padding:14px;}
+.section-label{
+  font-family:var(--mono);font-size:10px;letter-spacing:0.12em;
+  color:var(--teal);text-transform:uppercase;margin-bottom:14px;
+}
+
+/* ── RING HERO ── */
+.ring-hero{
+  display:flex;gap:24px;align-items:center;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r);padding:24px;margin-bottom:14px;
+  position:relative;overflow:hidden;
+}
+.ring-hero::before{
+  content:'';position:absolute;right:-60px;top:-60px;
+  width:220px;height:220px;border-radius:50%;
+  background:radial-gradient(circle,rgba(0,229,180,0.06) 0%,transparent 70%);
+  pointer-events:none;
+}
+.ring-vis{position:relative;width:140px;height:140px;flex-shrink:0;}
+.ring-vis svg{width:140px;height:140px;}
+.ring-center-info{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  text-align:center;
+}
+.ns-score{font-family:var(--mono);font-size:34px;font-weight:700;color:var(--teal);line-height:1;}
+.ns-label{font-size:10px;color:var(--muted);letter-spacing:0.08em;margin-top:2px;}
+.ring-info{flex:1;}
+.ring-name-tag{font-family:var(--mono);font-size:11px;color:var(--teal);letter-spacing:0.15em;margin-bottom:6px;}
+.ring-headline{font-size:22px;font-weight:500;color:var(--white);margin-bottom:4px;}
+.ring-sub{font-size:13px;color:var(--muted);margin-bottom:16px;}
+.score-row{display:flex;gap:10px;flex-wrap:wrap;}
+.score-chip{
+  display:flex;flex-direction:column;align-items:center;
+  background:var(--card2);border:1px solid var(--border);
+  border-radius:10px;padding:8px 14px;min-width:72px;
+}
+.chip-val{font-family:var(--mono);font-size:18px;font-weight:700;line-height:1;}
+.chip-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-top:3px;}
+
+/* ── HRV CARD ── */
+.hrv-wrap{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+.hrv-number{font-family:var(--mono);font-size:28px;color:var(--teal);}
+.hrv-unit{font-size:11px;color:var(--muted);margin-top:2px;}
+.hrv-badge{
+  font-family:var(--mono);font-size:10px;
+  background:rgba(0,229,180,0.1);color:var(--teal);
+  padding:3px 10px;border-radius:20px;border:1px solid rgba(0,229,180,0.2);
+}
+.live-tag{font-size:10px;color:var(--muted);margin-top:4px;}
+
+/* ── INSIGHT FEED ── */
+.insight{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 14px;background:var(--card);
+  border:1px solid var(--border);border-radius:var(--r2);
+  margin-bottom:8px;transition:border-color 0.2s;
+}
+.insight:hover{border-color:var(--border2);}
+.insight-icon{
+  width:34px;height:34px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.insight-icon svg{width:16px;height:16px;}
+.insight-body{flex:1;}
+.insight-title{font-size:13px;font-weight:500;color:var(--white);}
+.insight-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.insight-time{font-size:10px;color:var(--muted2);font-family:var(--mono);white-space:nowrap;}
+.insight-action{
+  font-size:10px;color:var(--teal);
+  background:rgba(0,229,180,0.08);border:1px solid rgba(0,229,180,0.2);
+  border-radius:6px;padding:3px 8px;cursor:pointer;white-space:nowrap;
+  font-family:var(--mono);transition:background 0.2s;
+}
+.insight-action:hover{background:rgba(0,229,180,0.15);}
+
+/* ── BREATHE PANEL ── */
+.breath-stage{
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;min-height:280px;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r);margin-bottom:14px;
+  position:relative;overflow:hidden;
+}
+.breath-stage::before{
+  content:'';position:absolute;
+  width:300px;height:300px;border-radius:50%;
+  background:radial-gradient(circle,rgba(0,229,180,0.04) 0%,transparent 70%);
+  animation:breath-bg 8s ease-in-out infinite;
+}
+@keyframes breath-bg{0%,100%{transform:scale(0.8);}50%{transform:scale(1.2);}}
+.breath-orb-wrap{position:relative;margin-bottom:20px;}
+.breath-orb{
+  width:120px;height:120px;border-radius:50%;
+  border:2px solid rgba(0,229,180,0.2);
+  display:flex;align-items:center;justify-content:center;
+  position:relative;transition:transform 4s ease-in-out;
+}
+.breath-orb-inner{
+  width:80px;height:80px;border-radius:50%;
+  background:rgba(0,229,180,0.08);
+  animation:orb-breathe 8s ease-in-out infinite;
+  display:flex;align-items:center;justify-content:center;
+}
+.breath-orb-inner svg{width:28px;height:28px;color:var(--teal);}
+@keyframes orb-breathe{
+  0%,100%{transform:scale(0.85);background:rgba(0,229,180,0.06);}
+  50%{transform:scale(1.1);background:rgba(0,229,180,0.18);}
+}
+.breath-ring-1,.breath-ring-2{
+  position:absolute;border-radius:50%;
+  border:1px solid rgba(0,229,180,0.15);
+  animation:ring-expand 8s ease-in-out infinite;
+}
+.breath-ring-1{width:130px;height:130px;top:-5px;left:-5px;}
+.breath-ring-2{width:150px;height:150px;top:-15px;left:-15px;animation-delay:0.5s;border-color:rgba(0,229,180,0.07);}
+@keyframes ring-expand{
+  0%,100%{transform:scale(0.9);opacity:0.5;}
+  50%{transform:scale(1.05);opacity:1;}
+}
+.breath-phase-text{font-family:var(--mono);font-size:16px;color:var(--teal);font-weight:700;z-index:1;}
+.breath-count{font-family:var(--mono);font-size:13px;color:var(--muted);z-index:1;margin-top:4px;}
+.breath-session-time{font-size:11px;color:var(--muted2);z-index:1;}
+.protocol-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;}
+.protocol-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r2);padding:14px;cursor:pointer;
+  transition:all 0.2s;text-align:center;
+}
+.protocol-card:hover,.protocol-card.active{
+  border-color:var(--teal2);background:rgba(0,229,180,0.06);
+}
+.proto-icon{font-size:22px;margin-bottom:6px;}
+.proto-name{font-size:12px;font-weight:500;color:var(--white);}
+.proto-pattern{font-size:10px;color:var(--teal);font-family:var(--mono);margin-top:2px;}
+.proto-desc{font-size:10px;color:var(--muted);margin-top:4px;}
+
+/* ── SENSORS PANEL ── */
+.sensor-row{
+  display:flex;align-items:center;gap:14px;
+  padding:16px;background:var(--card);
+  border:1px solid var(--border);border-radius:var(--r);
+  margin-bottom:10px;transition:border-color 0.2s;
+}
+.sensor-row:hover{border-color:var(--border2);}
+.sensor-icon-wrap{
+  width:44px;height:44px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.sensor-icon-wrap svg{width:20px;height:20px;}
+.sensor-info{flex:1;}
+.sensor-name{font-size:14px;font-weight:500;color:var(--white);}
+.sensor-func{font-size:11px;color:var(--muted);margin-top:2px;}
+.sensor-live{
+  text-align:right;flex-shrink:0;min-width:80px;
+}
+.sensor-val{font-family:var(--mono);font-size:16px;font-weight:700;}
+.sensor-unit{font-size:10px;color:var(--muted);margin-top:1px;}
+.sensor-bar-wrap{width:100%;height:3px;background:var(--card2);border-radius:2px;margin-top:8px;overflow:hidden;}
+.sensor-bar{height:100%;border-radius:2px;transition:width 1.5s ease;}
+
+/* ── FOCUS LOCK ── */
+.focus-hero{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r);padding:24px;margin-bottom:14px;
+  display:flex;gap:20px;align-items:center;
+  position:relative;overflow:hidden;
+}
+.focus-hero::before{
+  content:'';position:absolute;left:-40px;top:-40px;
+  width:180px;height:180px;border-radius:50%;
+  background:radial-gradient(circle,rgba(79,163,255,0.07) 0%,transparent 70%);
+}
+.focus-toggle-btn{
+  width:72px;height:72px;border-radius:50%;
+  background:var(--card2);border:2px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:all 0.3s;flex-shrink:0;
+}
+.focus-toggle-btn.on{
+  background:rgba(79,163,255,0.15);
+  border-color:var(--blue);
+  box-shadow:0 0 20px rgba(79,163,255,0.2);
+}
+.focus-toggle-btn svg{width:28px;height:28px;color:var(--muted);}
+.focus-toggle-btn.on svg{color:var(--blue);}
+.focus-info{flex:1;}
+.focus-state{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:0.12em;margin-bottom:4px;}
+.focus-title{font-size:20px;font-weight:500;color:var(--white);margin-bottom:4px;}
+.focus-sub{font-size:12px;color:var(--muted);}
+.focus-timer{font-family:var(--mono);font-size:32px;color:var(--blue);margin-top:8px;}
+.sound-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}
+.sound-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:10px;padding:12px;cursor:pointer;
+  text-align:center;transition:all 0.2s;
+}
+.sound-card:hover,.sound-card.active{border-color:var(--blue2);background:rgba(79,163,255,0.06);}
+.sound-icon{font-size:20px;margin-bottom:4px;}
+.sound-name{font-size:11px;color:var(--white);}
+
+/* ── SOS / SAFETY ── */
+.sos-hero{
+  background:rgba(255,79,79,0.05);border:1px solid rgba(255,79,79,0.2);
+  border-radius:var(--r);padding:20px;margin-bottom:14px;
+  display:flex;gap:16px;align-items:center;
+}
+.sos-indicator{
+  width:52px;height:52px;border-radius:50%;
+  background:rgba(255,79,79,0.12);
+  border:2px solid rgba(255,79,79,0.3);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.sos-indicator svg{width:22px;height:22px;color:var(--red);}
+.sos-dot{width:8px;height:8px;border-radius:50%;background:var(--red);animation:pulse-glow-r 2s infinite;flex-shrink:0;}
+@keyframes pulse-glow-r{0%,100%{box-shadow:0 0 0 0 rgba(255,79,79,0.4);}50%{box-shadow:0 0 0 5px rgba(255,79,79,0);}}
+.contact-card{
+  display:flex;align-items:center;gap:12px;
+  padding:14px;background:var(--card);
+  border:1px solid var(--border);border-radius:var(--r2);
+  margin-bottom:8px;
+}
+.contact-av{
+  width:38px;height:38px;border-radius:50%;
+  background:var(--card2);display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:500;color:var(--muted);flex-shrink:0;
+  font-family:var(--mono);
+}
+.contact-info{flex:1;}
+.contact-name{font-size:14px;font-weight:500;color:var(--white);}
+.contact-role{font-size:11px;color:var(--muted);margin-top:1px;}
+.contact-status{
+  font-size:10px;padding:3px 9px;border-radius:20px;
+  font-family:var(--mono);
+}
+.status-on{background:rgba(0,229,180,0.1);color:var(--teal);border:1px solid rgba(0,229,180,0.2);}
+.status-off{background:var(--card2);color:var(--muted2);}
+.nfc-card-ui{
+  background:linear-gradient(135deg,var(--card2),var(--card));
+  border:1px solid var(--teal3);border-radius:var(--r);
+  padding:20px;margin-bottom:14px;position:relative;overflow:hidden;
+}
+.nfc-card-ui::before{
+  content:'';position:absolute;top:-40px;right:-40px;
+  width:140px;height:140px;border-radius:50%;
+  border:1px solid rgba(0,229,180,0.08);
+}
+.nfc-card-ui::after{
+  content:'';position:absolute;top:-60px;right:-60px;
+  width:200px;height:200px;border-radius:50%;
+  border:1px solid rgba(0,229,180,0.04);
+}
+.nfc-tag{font-family:var(--mono);font-size:10px;color:var(--teal);letter-spacing:0.15em;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.nfc-field-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);}
+.nfc-field-row:last-child{border-bottom:none;}
+.nfc-field-label{font-size:12px;color:var(--muted);}
+.nfc-field-val{font-size:12px;color:var(--white);font-weight:500;}
+
+/* ── RING FINDER ── */
+.finder-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r);padding:20px;margin-bottom:14px;
+}
+.finder-status{
+  display:flex;align-items:center;gap:10px;margin-bottom:16px;
+}
+.finder-methods{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}
+.finder-method{
+  background:var(--card2);border-radius:10px;
+  padding:12px 8px;text-align:center;
+  border:1px solid var(--border);cursor:pointer;transition:all 0.2s;
+}
+.finder-method.active{border-color:var(--teal2);background:rgba(0,229,180,0.06);}
+.fm-icon{font-size:20px;margin-bottom:4px;}
+.fm-label{font-size:10px;color:var(--muted);}
+.ping-btn{
+  width:100%;padding:13px;border-radius:10px;
+  background:rgba(0,229,180,0.08);
+  border:1px solid rgba(0,229,180,0.25);
+  color:var(--teal);font-size:13px;font-weight:500;
+  font-family:var(--sans);cursor:pointer;
+  transition:all 0.2s;letter-spacing:0.03em;
+}
+.ping-btn:hover{background:rgba(0,229,180,0.15);border-color:var(--teal2);}
+.ping-btn:active{transform:scale(0.98);}
+
+/* ── TEAM DASHBOARD ── */
+.team-member{
+  display:flex;align-items:center;gap:12px;
+  padding:14px;background:var(--card);
+  border:1px solid var(--border);border-radius:var(--r2);
+  margin-bottom:8px;transition:border-color 0.2s;
+}
+.team-member:hover{border-color:var(--border2);}
+.member-av{
+  width:36px;height:36px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:500;color:var(--white);
+  flex-shrink:0;font-family:var(--mono);
+}
+.member-info{flex:1;}
+.member-name{font-size:13px;font-weight:500;color:var(--white);}
+.member-role{font-size:11px;color:var(--muted);margin-top:1px;}
+.member-scores{display:flex;gap:6px;}
+.mini-score{
+  font-family:var(--mono);font-size:11px;
+  padding:2px 7px;border-radius:6px;
+  background:var(--card2);border:1px solid var(--border);
+}
+.risk-badge{
+  font-size:10px;padding:3px 8px;border-radius:20px;
+  font-family:var(--mono);white-space:nowrap;
+}
+.risk-low{background:rgba(0,229,180,0.1);color:var(--teal);}
+.risk-med{background:rgba(245,166,35,0.1);color:var(--amber);}
+.risk-high{background:rgba(255,79,79,0.1);color:var(--red);}
+
+/* ── TOGGLES ── */
+.toggle-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 16px;background:var(--card);
+  border:1px solid var(--border);border-radius:var(--r2);
+  margin-bottom:8px;
+}
+.toggle-left{display:flex;align-items:center;gap:12px;}
+.toggle-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;}
+.toggle-icon svg{width:16px;height:16px;}
+.toggle-title{font-size:13px;font-weight:500;color:var(--white);}
+.toggle-desc{font-size:11px;color:var(--muted);margin-top:1px;}
+.toggle{
+  width:44px;height:24px;border-radius:12px;
+  background:var(--card2);border:none;cursor:pointer;
+  position:relative;transition:background 0.25s;flex-shrink:0;
+}
+.toggle.on{background:var(--teal3);}
+.toggle::after{
+  content:'';position:absolute;
+  top:3px;left:3px;width:18px;height:18px;
+  border-radius:50%;background:var(--muted2);
+  transition:transform 0.25s,background 0.25s;
+}
+.toggle.on::after{transform:translateX(20px);background:#fff;}
+
+/* ── THRESHOLD SLIDER ── */
+.threshold-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r);padding:18px;margin-bottom:14px;
+}
+.slider-wrap{margin-top:10px;}
+input[type=range]{
+  width:100%;height:4px;border-radius:2px;
+  -webkit-appearance:none;background:var(--card2);outline:none;cursor:pointer;
+  background:linear-gradient(to right, var(--teal) var(--pct, 85%), var(--card2) var(--pct, 85%));
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:18px;height:18px;
+  border-radius:50%;background:var(--teal);cursor:pointer;
+  border:2px solid var(--bg);box-shadow:0 0 8px rgba(0,229,180,0.4);
+}
+.slider-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--muted2);margin-top:6px;}
+
+/* ── PROFILE / SETTINGS ── */
+.settings-section{margin-bottom:20px;}
+.settings-section-title{font-family:var(--mono);font-size:10px;color:var(--teal);letter-spacing:0.1em;margin-bottom:10px;}
+.profile-header{
+  display:flex;align-items:center;gap:16px;
+  padding:20px;background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r);margin-bottom:14px;
+}
+.profile-av{
+  width:56px;height:56px;border-radius:50%;
+  background:linear-gradient(135deg,var(--teal4),var(--teal3));
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;font-weight:700;font-family:var(--mono);color:var(--teal);
+  flex-shrink:0;
+}
+.profile-name{font-size:18px;font-weight:500;color:var(--white);}
+.profile-sub{font-size:12px;color:var(--muted);margin-top:3px;}
+.profile-tag{
+  font-family:var(--mono);font-size:10px;
+  background:rgba(0,229,180,0.1);color:var(--teal);
+  padding:3px 8px;border-radius:20px;
+  border:1px solid rgba(0,229,180,0.2);margin-top:6px;display:inline-block;
+}
+.stat-mini-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
+.stat-mini{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:10px;padding:12px;text-align:center;
+}
+.stat-mini-val{font-family:var(--mono);font-size:20px;font-weight:700;color:var(--teal);}
+.stat-mini-label{font-size:10px;color:var(--muted);margin-top:3px;}
+
+/* ── CHART CANVAS ── */
+canvas{display:block;width:100%!important;}
+
+/* ── TOOLTIP ── */
+.tooltip{
+  position:fixed;z-index:100;
+  background:var(--card2);border:1px solid var(--border2);
+  border-radius:8px;padding:8px 12px;
+  font-size:11px;color:var(--white);
+  pointer-events:none;opacity:0;transition:opacity 0.15s;
+  font-family:var(--mono);
+}
+.tooltip.show{opacity:1;}
+
+/* ── ANIMATIONS ── */
+@keyframes fade-up{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.fade-in{animation:fade-up 0.4s ease both;}
+.delay-1{animation-delay:0.05s;}
+.delay-2{animation-delay:0.1s;}
+.delay-3{animation-delay:0.15s;}
+.delay-4{animation-delay:0.2s;}
+.delay-5{animation-delay:0.25s;}
+.delay-6{animation-delay:0.3s;}
+
+/* ── NOTIFICATION DRAWER ── */
+.notif-drawer{
+  position:fixed;top:60px;right:0;bottom:0;width:320px;
+  background:var(--bg2);border-left:1px solid var(--border);
+  z-index:50;transform:translateX(100%);transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);
+  overflow-y:auto;padding:20px;
+}
+.notif-drawer.open{transform:translateX(0);}
+.notif-header{font-family:var(--mono);font-size:12px;color:var(--teal);letter-spacing:0.1em;margin-bottom:16px;}
+.notif-item{
+  padding:12px 14px;background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r2);margin-bottom:8px;
+}
+.notif-item-title{font-size:13px;font-weight:500;color:var(--white);}
+.notif-item-sub{font-size:11px;color:var(--muted);margin-top:3px;}
+.notif-item-time{font-size:10px;color:var(--muted2);font-family:var(--mono);margin-top:4px;}
+
+/* ── RESPONSIVE ── */
+@media(max-width:900px){
+  .grid-3{grid-template-columns:1fr 1fr;}
+  .grid-4{grid-template-columns:1fr 1fr;}
+  .sound-grid{grid-template-columns:repeat(4,1fr);}
+  .finder-methods{grid-template-columns:repeat(2,1fr);}
+}
+@media(max-width:640px){
+  .grid-2,.grid-3,.grid-4,.protocol-grid,.sound-grid,.stat-mini-grid{grid-template-columns:1fr;}
+  .score-row{flex-direction:row;}
+  .ring-hero{flex-direction:column;align-items:flex-start;}
+  .ring-vis{align-self:center;}
+}
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar" id="sidebar">
+    <div class="logo-mark">DY<span>OGA</span></div>
+
+    <button class="nav-item active" onclick="switchPanel('dashboard',this)" title="Dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      <span class="nav-label">Dashboard</span>
+    </button>
+
+    <button class="nav-item" onclick="switchPanel('breathe',this)" title="Breathe">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/><path d="M8 12c0-2.21 1.79-4 4-4s4 1.79 4 4-1.79 4-4 4-4-1.79-4-4z"/></svg>
+      <span class="nav-label">Breathe</span>
+    </button>
+
+    <button class="nav-item" onclick="switchPanel('sensors',this)" title="Sensors">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      <span class="nav-label">Sensors</span>
+    </button>
+
+    <button class="nav-item" onclick="switchPanel('focus',this)" title="Focus Lock">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+      <span class="nav-label">Focus Lock</span>
+    </button>
+
+    <button class="nav-item" onclick="switchPanel('safety',this)" title="Safety">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <span class="nav-label">Safety</span>
+      <span class="badge"></span>
+    </button>
+
+    <button class="nav-item" onclick="switchPanel('finder',this)" title="Ring Finder">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+      <span class="nav-label">Ring Finder</span>
+    </button>
+
+    <button class="nav-item" onclick="switchPanel('team',this)" title="Team">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <span class="nav-label">Team</span>
+    </button>
+
+    <div class="sidebar-spacer"></div>
+
+    <button class="nav-item" onclick="switchPanel('profile',this)" title="Profile">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span class="nav-label">Profile</span>
+    </button>
+
+    <div class="conn-status">
+      <div class="conn-dot"></div>
+      <span class="conn-text">RING LIVE</span>
+    </div>
+  </aside>
+
+  <!-- ── MAIN ── -->
+  <main class="main">
+
+    <!-- TOP BAR -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="menu-btn" onclick="toggleSidebar()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <span class="page-title" id="pageTitle">DASHBOARD</span>
+      </div>
+      <div class="topbar-right">
+        <div class="bat-pill">
+          <div class="bat-icon"><div class="bat-fill" id="batFill" style="width:78%"></div></div>
+          <span id="batPct">78%</span>
+        </div>
+        <span class="time-chip" id="liveClock">--:--</span>
+        <button class="notif-btn" onclick="toggleNotif()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span class="dot"></span>
+        </button>
+      </div>
+    </header>
+
+    <!-- PANELS -->
+    <div class="panels">
+
+      <!-- ══ DASHBOARD ══ -->
+      <section class="panel active" id="panel-dashboard">
+        <div class="ring-hero fade-in">
+          <div class="ring-vis">
+            <svg viewBox="0 0 140 140">
+              <circle cx="70" cy="70" r="60" fill="none" stroke="#1f2f3d" stroke-width="8"/>
+              <circle cx="70" cy="70" r="60" fill="none" stroke="#00e5b4" stroke-width="8" stroke-linecap="round"
+                stroke-dasharray="377" stroke-dashoffset="83" transform="rotate(-90 70 70)" opacity="0.9" id="nsArc"/>
+              <circle cx="70" cy="70" r="48" fill="none" stroke="#1a2530" stroke-width="3"/>
+              <circle cx="70" cy="70" r="48" fill="none" stroke="#4fa3ff" stroke-width="3" stroke-linecap="round"
+                stroke-dasharray="301" stroke-dashoffset="72" transform="rotate(-90 70 70)" opacity="0.6" id="innerArc"/>
+            </svg>
+            <div class="ring-center-info">
+              <div class="ns-score" id="nsScore">78</div>
+              <div class="ns-label">NS BALANCE</div>
+            </div>
+          </div>
+          <div class="ring-info">
+            <div class="ring-name-tag">DYOGA PERFORMANCE RING</div>
+            <div class="ring-headline">Good Morning, Aryan</div>
+            <div class="ring-sub">Your nervous system is balanced. Optimal focus window: next 90 min.</div>
+            <div class="score-row">
+              <div class="score-chip">
+                <div class="chip-val" style="color:var(--teal)" id="calmVal">82</div>
+                <div class="chip-label">Calm</div>
+              </div>
+              <div class="score-chip">
+                <div class="chip-val" style="color:var(--blue)" id="focusVal">74</div>
+                <div class="chip-label">Focus</div>
+              </div>
+              <div class="score-chip">
+                <div class="chip-val" style="color:var(--amber)" id="recVal">69</div>
+                <div class="chip-label">Recovery</div>
+              </div>
+              <div class="score-chip">
+                <div class="chip-val" style="color:var(--purple)" id="emoVal">88</div>
+                <div class="chip-label">Emotional</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-bottom:14px;">
+          <div class="card fade-in delay-1">
+            <div class="section-label">Heart Rate Variability</div>
+            <div class="hrv-wrap">
+              <div>
+                <div class="hrv-number"><span id="hrvNum">54</span><span style="font-size:14px;color:var(--muted);margin-left:4px;">ms</span></div>
+                <div class="hrv-unit">Heart Rate Variability</div>
+              </div>
+              <div style="text-align:right">
+                <div class="hrv-badge" id="hrvStatus">Good</div>
+                <div class="live-tag" id="bpmLive">♥ 68 bpm</div>
+              </div>
+            </div>
+            <canvas id="hrvChart" height="70"></canvas>
+          </div>
+          <div class="card fade-in delay-2">
+            <div class="section-label">Biological Bandwidth</div>
+            <div style="display:flex;align-items:center;gap:16px;margin-bottom:10px;">
+              <div>
+                <div style="font-family:var(--mono);font-size:34px;font-weight:700;color:var(--amber)" id="bwPct">73<span style="font-size:16px;">%</span></div>
+                <div style="font-size:12px;color:var(--muted);">Mental energy remaining</div>
+              </div>
+              <div style="flex:1">
+                <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">Based on sleep + NS strain</div>
+                <div style="height:6px;background:var(--card2);border-radius:3px;overflow:hidden;">
+                  <div id="bwBar" style="height:100%;width:73%;background:var(--amber);border-radius:3px;transition:width 1s;"></div>
+                </div>
+              </div>
+            </div>
+            <canvas id="bwChart" height="55"></canvas>
+          </div>
+        </div>
+
+        <div class="section-label fade-in delay-3">Live Insights</div>
+        <div id="insightFeed"></div>
+      </section>
+
+      <!-- ══ BREATHE ══ -->
+      <section class="panel" id="panel-breathe">
+        <div class="breath-stage fade-in">
+          <div class="breath-orb-wrap">
+            <div class="breath-orb">
+              <div class="breath-ring-1"></div>
+              <div class="breath-ring-2"></div>
+              <div class="breath-orb-inner">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/><path d="M8 12c0-2.21 1.79-4 4-4s4 1.79 4 4-1.79 4-4 4-4-1.79-4-4z"/></svg>
+              </div>
+            </div>
+          </div>
+          <div class="breath-phase-text" id="breathPhase">Inhale — 4s</div>
+          <div class="breath-count" id="breathCount">Cycle 1 of 8</div>
+          <div class="breath-session-time" id="sessionTime">Session: 00:00</div>
+          <div style="display:flex;gap:10px;margin-top:16px;z-index:1;">
+            <button id="breathStartBtn" onclick="toggleBreath()" style="padding:10px 24px;border-radius:8px;background:rgba(0,229,180,0.1);border:1px solid rgba(0,229,180,0.3);color:var(--teal);font-family:var(--mono);font-size:12px;cursor:pointer;transition:all 0.2s;">START SESSION</button>
+          </div>
+        </div>
+
+        <div class="section-label fade-in delay-1">Breathing Protocols</div>
+        <div class="protocol-grid fade-in delay-1">
+          <div class="protocol-card active" onclick="setProtocol(this,'4-4-4-4','Box','4s inhale · 4s hold · 4s exhale · 4s hold')">
+            <div class="proto-icon">📦</div>
+            <div class="proto-name">Box Breathing</div>
+            <div class="proto-pattern">4·4·4·4</div>
+            <div class="proto-desc">Stress reset</div>
+          </div>
+          <div class="protocol-card" onclick="setProtocol(this,'4-7-8','Calm','4s inhale · 7s hold · 8s exhale')">
+            <div class="proto-icon">🌙</div>
+            <div class="proto-name">4-7-8 Calm</div>
+            <div class="proto-pattern">4·7·8</div>
+            <div class="proto-desc">Pre-sleep wind-down</div>
+          </div>
+          <div class="protocol-card" onclick="setProtocol(this,'6-0-6','Coherence','6s inhale · 6s exhale (no hold)')">
+            <div class="proto-icon">💚</div>
+            <div class="proto-name">HRV Coherence</div>
+            <div class="proto-pattern">6·0·6</div>
+            <div class="proto-desc">Heart coherence</div>
+          </div>
+        </div>
+
+        <div class="card fade-in delay-2" style="margin-bottom:14px;">
+          <div class="section-label">Ambient Sound</div>
+          <div class="sound-grid">
+            <div class="sound-card active" onclick="setSound(this)"><div class="sound-icon">🌲</div><div class="sound-name">Forest</div></div>
+            <div class="sound-card" onclick="setSound(this)"><div class="sound-icon">🌧</div><div class="sound-name">Rain</div></div>
+            <div class="sound-card" onclick="setSound(this)"><div class="sound-icon">🌊</div><div class="sound-name">Ocean</div></div>
+            <div class="sound-card" onclick="setSound(this)"><div class="sound-icon">🎵</div><div class="sound-name">40Hz Tone</div></div>
+          </div>
+        </div>
+
+        <div class="card fade-in delay-3">
+          <div class="section-label">Auto-Trigger Settings</div>
+          <div class="toggle-row" style="background:transparent;border:none;padding:8px 0;">
+            <div class="toggle-left">
+              <div class="toggle-icon" style="background:rgba(0,229,180,0.1);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+              </div>
+              <div><div class="toggle-title">Auto-trigger on stress spike</div><div class="toggle-desc">Ring vibrates without opening app</div></div>
+            </div>
+            <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+          </div>
+          <div class="toggle-row" style="background:transparent;border:none;padding:8px 0;border-top:1px solid var(--border);">
+            <div class="toggle-left">
+              <div class="toggle-icon" style="background:rgba(79,163,255,0.1);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+              </div>
+              <div><div class="toggle-title">Haptic rhythm sync</div><div class="toggle-desc">Ring mirrors breath pattern via micro-vibration</div></div>
+            </div>
+            <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══ SENSORS ══ -->
+      <section class="panel" id="panel-sensors">
+        <div class="section-label fade-in">Live Sensor Readings</div>
+
+        <div class="sensor-row fade-in delay-1">
+          <div class="sensor-icon-wrap" style="background:rgba(0,229,180,0.1);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </div>
+          <div class="sensor-info">
+            <div class="sensor-name">PPG — 18-Path Subsystem</div>
+            <div class="sensor-func">Dual-wavelength LEDs · HRV + SpO2 + respiratory rate</div>
+            <div class="sensor-bar-wrap"><div class="sensor-bar" style="width:82%;background:var(--teal);" id="ppgBar"></div></div>
+          </div>
+          <div class="sensor-live">
+            <div class="sensor-val" style="color:var(--teal)" id="ppgVal">54ms</div>
+            <div class="sensor-unit">HRV</div>
+          </div>
+        </div>
+
+        <div class="sensor-row fade-in delay-2">
+          <div class="sensor-icon-wrap" style="background:rgba(245,166,35,0.1);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </div>
+          <div class="sensor-info">
+            <div class="sensor-name">NTC Thermistor</div>
+            <div class="sensor-func">High-precision skin temperature · burnout baseline detection</div>
+            <div class="sensor-bar-wrap"><div class="sensor-bar" style="width:65%;background:var(--amber);" id="tempBar"></div></div>
+          </div>
+          <div class="sensor-live">
+            <div class="sensor-val" style="color:var(--amber)" id="tempVal">36.8°</div>
+            <div class="sensor-unit">Celsius</div>
+          </div>
+        </div>
+
+        <div class="sensor-row fade-in delay-3">
+          <div class="sensor-icon-wrap" style="background:rgba(79,163,255,0.1);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+          </div>
+          <div class="sensor-info">
+            <div class="sensor-name">EDA — Electrodermal Activity</div>
+            <div class="sensor-func">Micro-sweat on skin surface · acute stress detection</div>
+            <div class="sensor-bar-wrap"><div class="sensor-bar" style="width:28%;background:var(--blue);" id="edaBar"></div></div>
+          </div>
+          <div class="sensor-live">
+            <div class="sensor-val" style="color:var(--blue)" id="edaVal">2.1μS</div>
+            <div class="sensor-unit">Low stress</div>
+          </div>
+        </div>
+
+        <div class="sensor-row fade-in delay-4">
+          <div class="sensor-icon-wrap" style="background:rgba(192,132,252,0.1);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2"><path d="M5 12l5 5L20 7"/></svg>
+          </div>
+          <div class="sensor-info">
+            <div class="sensor-name">6-Axis Accelerometer</div>
+            <div class="sensor-func">Movement + physical activity · efficiency ratio calculation</div>
+            <div class="sensor-bar-wrap"><div class="sensor-bar" style="width:45%;background:var(--purple);" id="accelBar"></div></div>
+          </div>
+          <div class="sensor-live">
+            <div class="sensor-val" style="color:var(--purple)" id="accelVal">0.42g</div>
+            <div class="sensor-unit">Activity</div>
+          </div>
+        </div>
+
+        <div class="sensor-row fade-in delay-5">
+          <div class="sensor-icon-wrap" style="background:rgba(0,229,180,0.1);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+          </div>
+          <div class="sensor-info">
+            <div class="sensor-name">SpO2 — Blood Oxygen</div>
+            <div class="sensor-func">Pulse oximetry via PPG · oxygen saturation monitoring</div>
+            <div class="sensor-bar-wrap"><div class="sensor-bar" style="width:99%;background:var(--teal);" id="spo2Bar"></div></div>
+          </div>
+          <div class="sensor-live">
+            <div class="sensor-val" style="color:var(--teal)" id="spo2Val">99%</div>
+            <div class="sensor-unit">SpO2</div>
+          </div>
+        </div>
+
+        <div style="margin-top:14px;" class="fade-in delay-6">
+          <div class="section-label">24h Sensor History</div>
+          <div class="card card-sm">
+            <canvas id="sensorHistoryChart" height="90"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══ FOCUS LOCK ══ -->
+      <section class="panel" id="panel-focus">
+        <div class="focus-hero fade-in" id="focusHero">
+          <button class="focus-toggle-btn" id="focusBtn" onclick="toggleFocus()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+          </button>
+          <div class="focus-info">
+            <div class="focus-state" id="focusState">FOCUS LOCK — OFF</div>
+            <div class="focus-title" id="focusTitle">Deep Work Mode</div>
+            <div class="focus-sub" id="focusSub">Tap to silence notifications and activate ambient soundscape based on ring fatigue level.</div>
+            <div class="focus-timer" id="focusTimer" style="display:none;">00:00</div>
+          </div>
+        </div>
+
+        <div class="section-label fade-in delay-1">Ambient Soundscape</div>
+        <div class="sound-grid fade-in delay-1">
+          <div class="sound-card active" onclick="setSound(this)"><div class="sound-icon">🌲</div><div class="sound-name">Forest</div></div>
+          <div class="sound-card" onclick="setSound(this)"><div class="sound-icon">🌧</div><div class="sound-name">Rain</div></div>
+          <div class="sound-card" onclick="setSound(this)"><div class="sound-icon">🌊</div><div class="sound-name">Ocean</div></div>
+          <div class="sound-card" onclick="setSound(this)"><div class="sound-icon">🎵</div><div class="sound-name">40Hz Tone</div></div>
+        </div>
+
+        <div class="card fade-in delay-2" style="margin-bottom:14px;">
+          <div class="section-label">Focus Integrations</div>
+          <div class="toggle-row" style="background:transparent;border:none;padding:8px 0;">
+            <div class="toggle-left">
+              <div class="toggle-icon" style="background:rgba(79,163,255,0.1);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+              </div>
+              <div><div class="toggle-title">Silence all notifications</div><div class="toggle-desc">Phone DND mode while in Focus Lock</div></div>
+            </div>
+            <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+          </div>
+          <div class="toggle-row" style="background:transparent;border:none;padding:8px 0;border-top:1px solid var(--border);">
+            <div class="toggle-left">
+              <div class="toggle-icon" style="background:rgba(0,229,180,0.1);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              </div>
+              <div><div class="toggle-title">Calendar break suggestions</div><div class="toggle-desc">Suggests breaks when ring detects red zone</div></div>
+            </div>
+            <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+          </div>
+          <div class="toggle-row" style="background:transparent;border:none;padding:8px 0;border-top:1px solid var(--border);">
+            <div class="toggle-left">
+              <div class="toggle-icon" style="background:rgba(192,132,252,0.1);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              </div>
+              <div><div class="toggle-title">Slack status sync</div><div class="toggle-desc">Sets "in deep work" when Focus Lock is on</div></div>
+            </div>
+            <button class="toggle" onclick="this.classList.toggle('on')"></button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══ SAFETY / SOS ══ -->
+      <section class="panel" id="panel-safety">
+        <div class="sos-hero fade-in">
+          <div class="sos-indicator">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+              <div class="sos-dot"></div>
+              <div style="font-family:var(--mono);font-size:12px;color:var(--red);letter-spacing:0.08em;">SILENT SOS ACTIVE</div>
+            </div>
+            <div style="font-size:16px;font-weight:500;color:var(--white);margin-bottom:3px;">Stress threshold monitoring</div>
+            <div style="font-size:12px;color:var(--muted);">Alert fires when stress exceeds threshold. Contacts notified silently.</div>
+          </div>
+        </div>
+
+        <div class="section-label fade-in delay-1">Emergency Contacts</div>
+        <div id="contactList" class="fade-in delay-1"></div>
+
+        <div class="threshold-card fade-in delay-2">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <div style="font-size:13px;font-weight:500;color:var(--white);">SOS Trigger Threshold</div>
+            <div style="font-family:var(--mono);font-size:14px;color:var(--red);" id="threshDisplay">85%</div>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">Alert fires when stress score exceeds this level</div>
+          <div class="slider-wrap">
+            <input type="range" min="60" max="99" value="85" id="threshSlider" oninput="updateThreshold(this.value)">
+            <div class="slider-labels"><span>Sensitive (60%)</span><span>Emergency only (99%)</span></div>
+          </div>
+        </div>
+
+        <div class="section-label fade-in delay-3">Battery-Free NFC Emergency Card</div>
+        <div class="nfc-card-ui fade-in delay-3">
+          <div class="nfc-tag">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/></svg>
+            NFC EMERGENCY CARD — TAP RING TO ANY PHONE
+          </div>
+          <div class="nfc-field-row"><span class="nfc-field-label">Name</span><span class="nfc-field-val">Aryan Mehta</span></div>
+          <div class="nfc-field-row"><span class="nfc-field-label">Blood Type</span><span class="nfc-field-val">O+</span></div>
+          <div class="nfc-field-row"><span class="nfc-field-label">Allergies</span><span class="nfc-field-val">Penicillin</span></div>
+          <div class="nfc-field-row"><span class="nfc-field-label">Emergency Contact</span><span class="nfc-field-val">+91 98765 00001</span></div>
+          <div class="nfc-field-row"><span class="nfc-field-label">Physician</span><span class="nfc-field-val">Dr. Mehta, Apollo</span></div>
+          <div class="nfc-field-row"><span class="nfc-field-label">Conditions</span><span class="nfc-field-val">None on record</span></div>
+        </div>
+      </section>
+
+      <!-- ══ RING FINDER ══ -->
+      <section class="panel" id="panel-finder">
+        <div class="finder-card fade-in">
+          <div class="finder-status">
+            <div class="conn-dot"></div>
+            <div style="flex:1;">
+              <div style="font-size:14px;font-weight:500;color:var(--white);">Ring located</div>
+              <div style="font-size:11px;color:var(--muted);">Last sync: <span style="color:var(--teal);font-family:var(--mono);" id="lastSyncTime">2 min ago</span></div>
+            </div>
+            <div style="font-family:var(--mono);font-size:11px;color:var(--teal);background:rgba(0,229,180,0.08);padding:4px 10px;border-radius:20px;border:1px solid rgba(0,229,180,0.2);">NEARBY</div>
+          </div>
+          <div class="section-label">Location Methods</div>
+          <div class="finder-methods">
+            <div class="finder-method active">
+              <div class="fm-icon">📡</div>
+              <div class="fm-label">Bluetooth</div>
+            </div>
+            <div class="finder-method">
+              <div class="fm-icon">🔊</div>
+              <div class="fm-label">Sound Ping</div>
+            </div>
+            <div class="finder-method">
+              <div class="fm-icon">📍</div>
+              <div class="fm-label">GPS Sync</div>
+            </div>
+            <div class="finder-method">
+              <div class="fm-icon">〜</div>
+              <div class="fm-label">Vibrate</div>
+            </div>
+          </div>
+          <button class="ping-btn" id="pingBtn" onclick="pingRing()">Ping Ring</button>
+        </div>
+
+        <div class="card fade-in delay-1" style="margin-bottom:14px;">
+          <div class="section-label">Signal Strength</div>
+          <div style="display:flex;align-items:center;gap:16px;margin-bottom:10px;">
+            <div style="font-family:var(--mono);font-size:28px;color:var(--teal);" id="signalVal">-42</div>
+            <div>
+              <div style="font-size:12px;color:var(--white);">dBm RSSI</div>
+              <div style="font-size:11px;color:var(--muted);">Very strong signal</div>
+            </div>
+          </div>
+          <canvas id="signalChart" height="60"></canvas>
+        </div>
+
+        <div class="card fade-in delay-2">
+          <div class="section-label">Last Known Location</div>
+          <div style="background:var(--card2);border-radius:10px;height:120px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);position:relative;overflow:hidden;">
+            <div style="position:absolute;inset:0;background:radial-gradient(circle at 60% 50%,rgba(0,229,180,0.06) 0%,transparent 60%);"></div>
+            <div style="text-align:center;z-index:1;">
+              <div style="font-size:22px;margin-bottom:6px;">📍</div>
+              <div style="font-size:13px;color:var(--white);">Home Office — Pune</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px;">18.562°N, 73.818°E · Synced 2 min ago</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══ TEAM DASHBOARD ══ -->
+      <section class="panel" id="panel-team">
+        <div class="grid-3" style="margin-bottom:14px;">
+          <div class="card card-sm fade-in">
+            <div class="section-label">Team Avg NS</div>
+            <div style="font-family:var(--mono);font-size:28px;font-weight:700;color:var(--teal);">71</div>
+            <div style="font-size:11px;color:var(--muted);">+3 from yesterday</div>
+          </div>
+          <div class="card card-sm fade-in delay-1">
+            <div class="section-label">Burnout Risk</div>
+            <div style="font-family:var(--mono);font-size:28px;font-weight:700;color:var(--amber);">2/8</div>
+            <div style="font-size:11px;color:var(--muted);">Members in amber zone</div>
+          </div>
+          <div class="card card-sm fade-in delay-2">
+            <div class="section-label">Recovery Rate</div>
+            <div style="font-family:var(--mono);font-size:28px;font-weight:700;color:var(--blue);">87%</div>
+            <div style="font-size:11px;color:var(--muted);">Team avg this week</div>
+          </div>
+        </div>
+
+        <div class="section-label fade-in delay-3">Team Members — Anonymized</div>
+        <div id="teamList" class="fade-in delay-3"></div>
+
+        <div class="card fade-in" style="margin-top:14px;">
+          <div class="section-label">Team NS Score — 7 Day Trend</div>
+          <canvas id="teamChart" height="90"></canvas>
+        </div>
+      </section>
+
+      <!-- ══ PROFILE ══ -->
+      <section class="panel" id="panel-profile">
+        <div class="profile-header fade-in">
+          <div class="profile-av">AM</div>
+          <div>
+            <div class="profile-name">Aryan Mehta</div>
+            <div class="profile-sub">Founder · DYOGA Beta User #004</div>
+            <div class="profile-tag">RING PAIRED · 7-DAY STREAK</div>
+          </div>
+        </div>
+
+        <div class="stat-mini-grid fade-in delay-1">
+          <div class="stat-mini"><div class="stat-mini-val">127</div><div class="stat-mini-label">Sessions</div></div>
+          <div class="stat-mini"><div class="stat-mini-val">42h</div><div class="stat-mini-label">Focus time</div></div>
+          <div class="stat-mini"><div class="stat-mini-val">78</div><div class="stat-mini-label">Avg NS score</div></div>
+        </div>
+
+        <div class="settings-section fade-in delay-2">
+          <div class="settings-section-title">Ring Settings</div>
+          <div class="toggle-row">
+            <div class="toggle-left"><div class="toggle-icon" style="background:rgba(0,229,180,0.1);"><svg viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div><div><div class="toggle-title">Haptic biofeedback</div><div class="toggle-desc">Ring vibrates on stress spike</div></div></div>
+            <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-left"><div class="toggle-icon" style="background:rgba(245,166,35,0.1);"><svg viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div><div class="toggle-title">Sleep tracking</div><div class="toggle-desc">Overnight ring monitoring</div></div></div>
+            <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-left"><div class="toggle-icon" style="background:rgba(79,163,255,0.1);"><svg viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.99 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.92 1.11h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 8.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg></div><div><div class="toggle-title">Emergency call permission</div><div class="toggle-desc">Allow SOS to trigger a call</div></div></div>
+            <button class="toggle" onclick="this.classList.toggle('on')"></button>
+          </div>
+        </div>
+
+        <div class="settings-section fade-in delay-3">
+          <div class="settings-section-title">About Ring</div>
+          <div class="card card-sm">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <div><div style="font-size:11px;color:var(--muted);">Firmware</div><div style="font-family:var(--mono);font-size:13px;color:var(--white);margin-top:2px;">v2.1.4</div></div>
+              <div><div style="font-size:11px;color:var(--muted);">Hardware</div><div style="font-family:var(--mono);font-size:13px;color:var(--white);margin-top:2px;">DYOGA-R1</div></div>
+              <div><div style="font-size:11px;color:var(--muted);">Material</div><div style="font-size:13px;color:var(--white);margin-top:2px;">Zirconia Ceramic</div></div>
+              <div><div style="font-size:11px;color:var(--muted);">Serial</div><div style="font-family:var(--mono);font-size:13px;color:var(--white);margin-top:2px;">DYG-004-2025</div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /panels -->
+  </main>
+</div><!-- /app-shell -->
+
+<!-- Notification Drawer -->
+<div class="notif-drawer" id="notifDrawer">
+  <div class="notif-header">NOTIFICATIONS</div>
+  <div id="notifList"></div>
+</div>
+
+<!-- Tooltip -->
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────────
+const state = {
+  hrv: 54, bpm: 68, bw: 73, calm: 82, focus: 74, rec: 69, emo: 88,
+  temp: 36.8, eda: 2.1, accel: 0.42, spo2: 99,
+  signal: -42,
+  nsScore: 78,
+  focusOn: false, focusSeconds: 0,
+  breathOn: false, breathSeconds: 0, breathCycle: 1,
+  protocol: 'Box',
+  threshSliderVal: 85,
+};
+
+const insights = [
+  { type:'warn', title:'Stress spike detected', sub:'Haptic breathing guide activated on ring', time:'9:42 AM', action:'View' },
+  { type:'ok', title:'Focus zone entered', sub:'Notifications paused · Focus Lock active', time:'8:15 AM', action:'Keep' },
+  { type:'ok', title:'NS System recovered', sub:'SpO2 99% · Temp 36.8°C · HRV stable', time:'7:30 AM', action:null },
+  { type:'info', title:'Sleep quality: Good', sub:'7h 22m · Deep sleep 28% · REM 24%', time:'6:55 AM', action:'Details' },
+  { type:'warn', title:'Pre-burnout signal', sub:'3 consecutive high-strain hours detected', time:'Yesterday', action:'Fix' },
+];
+
+const contacts = [
+  { initials:'MA', name:'Mom', role:'Family', on:true },
+  { initials:'DR', name:'Dr. Rao', role:'Therapist', on:true },
+  { initials:'WC', name:'Wellness Coach', role:'Holistic Health', on:false },
+  { initials:'SK', name:'Sneha Kumar', role:'Emergency Friend', on:true },
+];
+
+const team = [
+  { initials:'AK', name:'Member A', role:'Engineering', calm:88, focus:79, rec:82, risk:'low', color:'#00c49a' },
+  { initials:'BM', name:'Member B', role:'Design', calm:72, focus:65, rec:61, risk:'med', color:'#f5a623' },
+  { initials:'CV', name:'Member C', role:'Product', calm:91, focus:85, rec:88, risk:'low', color:'#4fa3ff' },
+  { initials:'DT', name:'Member D', role:'Marketing', calm:58, focus:52, rec:47, risk:'high', color:'#ff4f4f' },
+  { initials:'EP', name:'Member E', role:'Operations', calm:79, focus:74, rec:77, risk:'low', color:'#c084fc' },
+  { initials:'FM', name:'Member F', role:'Sales', calm:65, focus:61, rec:59, risk:'med', color:'#f5a623' },
+];
+
+const notifs = [
+  { title:'Stress spike at 9:42 AM', sub:'Ring activated breathing guide automatically', time:'9:42 AM' },
+  { title:'Focus Lock session ended', sub:'55 min deep work session completed', time:'8:15 AM' },
+  { title:'Team member in amber zone', sub:'Member B showing elevated stress signals', time:'Yesterday' },
+  { title:'Firmware update available', sub:'DYOGA Ring v2.2.0 ready to install', time:'2 days ago' },
+];
+
+// ── INIT ───────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  renderInsights();
+  renderContacts();
+  renderTeam();
+  renderNotifs();
+  drawHRVChart();
+  drawBWChart();
+  drawSensorHistory();
+  drawSignalChart();
+  drawTeamChart();
+  startClock();
+  startLiveData();
+  updateThreshold(85);
+});
+
+// ── NAVIGATION ─────────────────────────────────────────────────
+const pageTitles = { dashboard:'DASHBOARD', breathe:'BREATHE', sensors:'SENSORS', focus:'FOCUS LOCK', safety:'SAFETY', finder:'RING FINDER', team:'TEAM', profile:'PROFILE' };
+
+function switchPanel(id, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  btn.classList.add('active');
+  document.getElementById('pageTitle').textContent = pageTitles[id] || id.toUpperCase();
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('expanded');
+}
+
+function toggleNotif() {
+  document.getElementById('notifDrawer').classList.toggle('open');
+}
+
+// ── CLOCK ──────────────────────────────────────────────────────
+function startClock() {
+  function tick() {
+    const now = new Date();
+    document.getElementById('liveClock').textContent =
+      now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+  }
+  tick(); setInterval(tick, 10000);
+}
+
+// ── LIVE DATA SIMULATION ────────────────────────────────────────
+let hrvHistory = [44,48,52,50,54,58,55,57,54,56,52,54,58,56,54,58,62,59,57,54,56,54,58,55,54];
+let bwHistory = [80,78,75,77,74,72,73,71,74,76,73,75,72,73];
+let signalHistory = Array(20).fill(-42);
+
+function startLiveData() {
+  setInterval(() => {
+    // HRV
+    state.hrv = Math.max(42, Math.min(68, state.hrv + (Math.random()-0.5)*3));
+    document.getElementById('hrvNum').textContent = Math.round(state.hrv);
+    document.getElementById('ppgVal').textContent = Math.round(state.hrv) + 'ms';
+    document.getElementById('ppgBar').style.width = Math.min(100, state.hrv * 1.5) + '%';
+    const status = state.hrv > 55 ? 'Good' : state.hrv > 42 ? 'Moderate' : 'Low';
+    document.getElementById('hrvStatus').textContent = status;
+    hrvHistory.push(Math.round(state.hrv)); hrvHistory.shift();
+    drawHRVChart();
+
+    // BPM
+    state.bpm = Math.max(58, Math.min(82, state.bpm + Math.round((Math.random()-0.5)*4)));
+    document.getElementById('bpmLive').textContent = '♥ ' + state.bpm + ' bpm';
+
+    // Temp
+    state.temp = Math.max(36.2, Math.min(37.4, state.temp + (Math.random()-0.5)*0.08));
+    document.getElementById('tempVal').textContent = state.temp.toFixed(1) + '°';
+
+    // EDA
+    state.eda = Math.max(0.5, Math.min(8, state.eda + (Math.random()-0.5)*0.4));
+    document.getElementById('edaVal').textContent = state.eda.toFixed(1) + 'μS';
+    document.getElementById('edaBar').style.width = Math.min(100, state.eda * 12) + '%';
+    document.getElementById('edaBar').parentElement.nextElementSibling.children[0].textContent = state.eda.toFixed(1) + 'μS';
+
+    // Accel
+    state.accel = Math.max(0.1, Math.min(2, state.accel + (Math.random()-0.5)*0.15));
+    document.getElementById('accelVal').textContent = state.accel.toFixed(2) + 'g';
+    document.getElementById('accelBar').style.width = Math.min(100, state.accel * 50) + '%';
+
+    // Signal
+    state.signal = Math.max(-70, Math.min(-30, state.signal + Math.round((Math.random()-0.5)*4)));
+    document.getElementById('signalVal').textContent = state.signal;
+    signalHistory.push(state.signal); signalHistory.shift();
+    drawSignalChart();
+
+    // Scores drift
+    state.calm = Math.max(60, Math.min(100, state.calm + (Math.random()-0.5)*2));
+    state.focus = Math.max(55, Math.min(100, state.focus + (Math.random()-0.5)*2));
+    state.nsScore = Math.round((state.calm + state.focus + state.rec + state.emo) / 4);
+    document.getElementById('nsScore').textContent = state.nsScore;
+    document.getElementById('calmVal').textContent = Math.round(state.calm);
+    document.getElementById('focusVal').textContent = Math.round(state.focus);
+
+    // NS arc update
+    const pct = state.nsScore / 100;
+    const circumference = 377;
+    document.getElementById('nsArc').setAttribute('stroke-dashoffset', circumference * (1-pct));
+
+    // BW
+    bwHistory.push(Math.max(40,Math.min(100,bwHistory[bwHistory.length-1]+(Math.random()-0.5)*3)));
+    bwHistory.shift();
+    const bwCurr = Math.round(bwHistory[bwHistory.length-1]);
+    document.getElementById('bwPct').innerHTML = bwCurr + '<span style="font-size:16px;">%</span>';
+    document.getElementById('bwBar').style.width = bwCurr + '%';
+    drawBWChart();
+
+  }, 2000);
+}
+
+// ── CHARTS ─────────────────────────────────────────────────────
+function drawSparkline(canvasId, data, color, fillColor, min, max) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.offsetWidth; const h = canvas.height;
+  canvas.width = w * dpr; canvas.height = h * dpr;
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, w, h);
+
+  const pad = 8;
+  ctx.beginPath();
+  data.forEach((v, i) => {
+    const x = pad + (i / (data.length - 1)) * (w - pad * 2);
+    const y = h - pad - ((v - min) / (max - min)) * (h - pad * 2);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.lineJoin = 'round'; ctx.stroke();
+
+  // Fill
+  const lastX = pad + ((data.length-1)/(data.length-1))*(w-pad*2);
+  const firstX = pad;
+  ctx.lineTo(lastX, h); ctx.lineTo(firstX, h); ctx.closePath();
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, fillColor); grad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = grad; ctx.fill();
+}
+
+function drawHRVChart() { drawSparkline('hrvChart', hrvHistory, '#00e5b4', 'rgba(0,229,180,0.12)', 35, 75); }
+function drawBWChart() { drawSparkline('bwChart', bwHistory, '#f5a623', 'rgba(245,166,35,0.1)', 30, 100); }
+
+function drawSensorHistory() {
+  const canvas = document.getElementById('sensorHistoryChart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.offsetWidth; const h = canvas.height;
+  canvas.width = w * dpr; canvas.height = h * dpr;
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0,0,w,h);
+
+  const datasets = [
+    { data:[44,50,48,52,55,59,57,54,56,52,54,58,56,54,58,62,59,54,56,54,58,55,54,52], color:'#00e5b4' },
+    { data:[36.7,36.8,36.9,36.8,37.0,36.9,36.8,36.7,36.8,36.9,36.8,36.7,36.8,36.8,36.9,37.0,36.9,36.8,36.7,36.8,36.8,36.9,36.8,36.8], color:'#f5a623' },
+  ];
+  const pad = 8;
+  datasets.forEach(ds => {
+    const min = Math.min(...ds.data); const max = Math.max(...ds.data);
+    ctx.beginPath();
+    ds.data.forEach((v, i) => {
+      const x = pad + (i/(ds.data.length-1))*(w-pad*2);
+      const y = h - pad - ((v-min)/(max-min+0.01))*(h-pad*2);
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    });
+    ctx.strokeStyle=ds.color; ctx.lineWidth=1.5; ctx.lineJoin='round'; ctx.stroke();
+  });
+}
+
+function drawSignalChart() {
+  drawSparkline('signalChart', signalHistory.map(v=>Math.abs(v)), '#4fa3ff', 'rgba(79,163,255,0.08)', 25, 75);
+}
+
+function drawTeamChart() {
+  const canvas = document.getElementById('teamChart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.offsetWidth; const h = canvas.height;
+  canvas.width = w * dpr; canvas.height = h * dpr;
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0,0,w,h);
+  const data = [65,68,71,70,72,71,73];
+  drawSparkline('teamChart', data, '#00e5b4', 'rgba(0,229,180,0.08)', 50, 100);
+}
+
+// ── RENDER FUNCTIONS ────────────────────────────────────────────
+function renderInsights() {
+  const feed = document.getElementById('insightFeed');
+  const colors = { warn:'rgba(245,166,35,0.12)', ok:'rgba(0,229,180,0.08)', info:'rgba(79,163,255,0.08)' };
+  const iconColors = { warn:'#f5a623', ok:'#00e5b4', info:'#4fa3ff' };
+  const icons = {
+    warn: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+    ok: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>`,
+    info: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`,
+  };
+  feed.innerHTML = insights.map(ins => `
+    <div class="insight">
+      <div class="insight-icon" style="background:${colors[ins.type]};color:${iconColors[ins.type]};">${icons[ins.type]}</div>
+      <div class="insight-body">
+        <div class="insight-title">${ins.title}</div>
+        <div class="insight-sub">${ins.sub}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+        <div class="insight-time">${ins.time}</div>
+        ${ins.action ? `<span class="insight-action">${ins.action}</span>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderContacts() {
+  document.getElementById('contactList').innerHTML = contacts.map(c => `
+    <div class="contact-card">
+      <div class="contact-av">${c.initials}</div>
+      <div class="contact-info">
+        <div class="contact-name">${c.name}</div>
+        <div class="contact-role">${c.role}</div>
+      </div>
+      <span class="contact-status ${c.on ? 'status-on' : 'status-off'}">${c.on ? 'Active' : 'Paused'}</span>
+    </div>
+  `).join('');
+}
+
+function renderTeam() {
+  const riskClass = { low:'risk-low', med:'risk-med', high:'risk-high' };
+  const riskLabel = { low:'Low Risk', med:'Amber Zone', high:'High Risk' };
+  document.getElementById('teamList').innerHTML = team.map(m => `
+    <div class="team-member">
+      <div class="member-av" style="background:${m.color}22;color:${m.color};">${m.initials}</div>
+      <div class="member-info">
+        <div class="member-name">${m.name}</div>
+        <div class="member-role">${m.role}</div>
+      </div>
+      <div class="member-scores">
+        <div class="mini-score" style="color:var(--teal);">C:${m.calm}</div>
+        <div class="mini-score" style="color:var(--blue);">F:${m.focus}</div>
+        <div class="mini-score" style="color:var(--amber);">R:${m.rec}</div>
+      </div>
+      <span class="risk-badge ${riskClass[m.risk]}">${riskLabel[m.risk]}</span>
+    </div>
+  `).join('');
+}
+
+function renderNotifs() {
+  document.getElementById('notifList').innerHTML = notifs.map(n => `
+    <div class="notif-item">
+      <div class="notif-item-title">${n.title}</div>
+      <div class="notif-item-sub">${n.sub}</div>
+      <div class="notif-item-time">${n.time}</div>
+    </div>
+  `).join('');
+}
+
+// ── BREATHE ────────────────────────────────────────────────────
+const protocols = {
+  Box:      { phases:['Inhale','Hold','Exhale','Hold'], times:[4,4,4,4] },
+  Calm:     { phases:['Inhale','Hold','Exhale'], times:[4,7,8] },
+  Coherence:{ phases:['Inhale','Exhale'], times:[6,6] },
+};
+let currentPhaseIdx = 0, breathInterval = null, phaseInterval = null, sessionInterval = null;
+let breathRunning = false;
+
+function toggleBreath() {
+  breathRunning = !breathRunning;
+  const btn = document.getElementById('breathStartBtn');
+  if (breathRunning) {
+    btn.textContent = 'STOP SESSION';
+    btn.style.borderColor = 'rgba(255,79,79,0.3)';
+    btn.style.color = 'var(--red)';
+    runBreathPhases();
+    state.breathSeconds = 0;
+    sessionInterval = setInterval(() => {
+      state.breathSeconds++;
+      const m = Math.floor(state.breathSeconds/60).toString().padStart(2,'0');
+      const s = (state.breathSeconds%60).toString().padStart(2,'0');
+      document.getElementById('sessionTime').textContent = `Session: ${m}:${s}`;
+    }, 1000);
+  } else {
+    btn.textContent = 'START SESSION';
+    btn.style.borderColor = 'rgba(0,229,180,0.3)';
+    btn.style.color = 'var(--teal)';
+    clearTimeout(phaseInterval); clearInterval(sessionInterval);
+    document.getElementById('breathPhase').textContent = 'Inhale — 4s';
+    document.getElementById('breathCount').textContent = 'Cycle 1 of 8';
+    currentPhaseIdx = 0; state.breathCycle = 1;
+  }
+}
+
+function runBreathPhases() {
+  if (!breathRunning) return;
+  const proto = protocols[state.protocol];
+  const phase = proto.phases[currentPhaseIdx];
+  const dur = proto.times[currentPhaseIdx];
+  document.getElementById('breathPhase').textContent = `${phase} — ${dur}s`;
+  currentPhaseIdx = (currentPhaseIdx + 1) % proto.phases.length;
+  if (currentPhaseIdx === 0) {
+    state.breathCycle = Math.min(state.breathCycle + 1, 8);
+    document.getElementById('breathCount').textContent = `Cycle ${state.breathCycle} of 8`;
+  }
+  phaseInterval = setTimeout(runBreathPhases, dur * 1000);
+}
+
+function setProtocol(el, name, protoKey, desc) {
+  document.querySelectorAll('.protocol-card').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  state.protocol = protoKey;
+  if (!breathRunning) document.getElementById('breathPhase').textContent = `Inhale — ${protocols[protoKey].times[0]}s`;
+}
+
+function setSound(el) {
+  el.closest('.sound-grid').querySelectorAll('.sound-card').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ── FOCUS LOCK ─────────────────────────────────────────────────
+let focusInterval = null;
+
+function toggleFocus() {
+  state.focusOn = !state.focusOn;
+  const btn = document.getElementById('focusBtn');
+  const timer = document.getElementById('focusTimer');
+  const stateEl = document.getElementById('focusState');
+  const sub = document.getElementById('focusSub');
+
+  if (state.focusOn) {
+    btn.classList.add('on');
+    stateEl.textContent = 'FOCUS LOCK — ACTIVE';
+    sub.textContent = 'Phone silenced · Ambient sound playing · Ring monitoring fatigue level.';
+    timer.style.display = 'block';
+    state.focusSeconds = 0;
+    focusInterval = setInterval(() => {
+      state.focusSeconds++;
+      const m = Math.floor(state.focusSeconds/60).toString().padStart(2,'0');
+      const s = (state.focusSeconds%60).toString().padStart(2,'0');
+      timer.textContent = m + ':' + s;
+    }, 1000);
+  } else {
+    btn.classList.remove('on');
+    stateEl.textContent = 'FOCUS LOCK — OFF';
+    sub.textContent = 'Tap to silence notifications and activate ambient soundscape based on ring fatigue level.';
+    timer.style.display = 'none';
+    clearInterval(focusInterval);
+  }
+}
+
+// ── RING FINDER ────────────────────────────────────────────────
+function pingRing() {
+  const btn = document.getElementById('pingBtn');
+  btn.textContent = 'Pinging ring…';
+  btn.style.color = 'var(--amber)';
+  btn.style.borderColor = 'rgba(245,166,35,0.3)';
+  setTimeout(() => {
+    btn.textContent = 'Ring found nearby ✓';
+    btn.style.color = 'var(--teal)';
+    btn.style.borderColor = 'rgba(0,229,180,0.3)';
+    setTimeout(() => { btn.textContent = 'Ping Ring'; btn.style.color = ''; btn.style.borderColor = ''; }, 3000);
+  }, 2000);
+}
+
+// ── THRESHOLD ─────────────────────────────────────────────────
+function updateThreshold(val) {
+  state.threshSliderVal = val;
+  document.getElementById('threshDisplay').textContent = val + '%';
+  const slider = document.getElementById('threshSlider');
+  if (slider) slider.style.setProperty('--pct', ((val-60)/(99-60)*100).toFixed(1) + '%');
+}
+
+// ── INIT CHARTS AFTER LAYOUT ────────────────────────────────────
+window.addEventListener('resize', () => {
+  drawHRVChart(); drawBWChart(); drawSensorHistory(); drawSignalChart(); drawTeamChart();
+});
+setTimeout(() => {
+  drawHRVChart(); drawBWChart(); drawSensorHistory(); drawSignalChart(); drawTeamChart();
+}, 200);
+</script>
+</body>
+</html>
